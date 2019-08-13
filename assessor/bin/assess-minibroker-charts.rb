@@ -91,6 +91,8 @@ def config
   puts "  - Top:       #{@top.blue}"
   puts "  - Work dir:  #{@workdir.blue}"
   puts "  - SCF dir:   #{@scfdir.blue}"
+
+  FileUtils.mkdir_p(@workdir)
 end
 
 def mode
@@ -141,9 +143,9 @@ def base_statistics
     # We are ignoring all the entries for which we do not have the
     # engine version. Because that is the plan id later, therefore
     # required.
-    puts "#{"Extracting".cyan} engine #{engine.blue}: #{master_index[engine].select do |chart|
-         chart ['appVersion']
-    end.length.to_s.cyan}"
+
+    count = master_index[engine].select {|c| c['appVersion']}.length
+    puts "#{"Extracting".cyan} engine #{engine.blue}: #{count.to_s.cyan}"
   end
 end
 
@@ -157,18 +159,19 @@ def state
     else
       @state = {}
     end
-    # State schema:
-    # <engine>.<version>.works	:: boolean
-    # <engine>.<version>.app	:: string
+    # Schema:
+    # - state[<engine>][<version>]['works']	:: boolean
+    # - state[<engine>][<version>]['app']	:: string
     #
     # version is chart version  (`version`)
     # app     is engine version (`appVersion`)
+    @state.default_proc = { |h, k| h[k] = Hash.new }
   end
   @state
 end
 
 def state_save(engine, enginev, chartv, success)
-  @state[engine] = {} unless @state[engine]
+  @state[engine] ||= {}
   @state[engine][chartv] = {
     'app'   => enginev,
     'works' => success,
@@ -177,15 +180,12 @@ def state_save(engine, enginev, chartv, success)
 end
 
 def skip_chart(engine, enginev, chartv)
-  if @incremental && state[engine] && state[engine][chartv]
-    @skipped += 1
-    rewind
-    write "Skipping #{engine} #{enginev} #{chartv}"
-    # delay to actually see the output ?
-    true
-  else
-    false
-  end
+  return false unless @incremental && state[engine][chartv]
+  @skipped += 1
+  rewind
+  write "Skipping #{engine} #{enginev} #{chartv}"
+  # delay to actually see the output ?
+  true
 end
 
 def assess_chart (chart, engine, enginev, chartv, chartlocation)
@@ -193,19 +193,20 @@ def assess_chart (chart, engine, enginev, chartv, chartlocation)
 
   rewind
   write "  - #{engine.blue} #{enginev.blue}, chart #{chartv.blue} ..."
+  begin
+    separator " helm repo setup ..." do
+      @the_repo = helm_repo_setup(chart, engine, chartlocation)
 
-  separator " helm repo setup ..." do
-    @the_repo = helm_repo_setup(chart, engine, chartlocation)
-
-    if @the_repo
-      " helm repo #{"up".green},"
-    else
-      state_save(engine, enginev, chartv, false)
-      " helm repo #{"start failed".repo}, likely a patch failure"
+      if @the_repo
+        " helm repo #{"up".green},"
+      else
+        state_save(engine, enginev, chartv, false)
+        " helm repo #{"start failed".repo}, likely a patch failure"
+      end
     end
-  end
 
-  if @the_repo
+    return "" unless @the_repo
+
     separator " testing ..." do
       success = do_test(@the_repo, engine)
 
@@ -224,7 +225,7 @@ def assess_chart (chart, engine, enginev, chartv, chartlocation)
       set errexit: false do
         run "cf marketplace"
         stdout, _, _ = capture "cf service-brokers"
-        matches = stdout.match(/(minibroker-[^ 	]*)/)
+        matches = stdout.match(/(minibroker-\S*)/)
         if matches
           broker = matches[1]
           run "cf", "purge-service-offering", "-f", engine
@@ -234,14 +235,15 @@ def assess_chart (chart, engine, enginev, chartv, chartlocation)
       ""
     end
 
+  ensure
     separator " helm repo shutdown ..." do
       helm_repo_shutdown
       " helm repo #{"down".blue},"
     end
-  end
 
-  puts " done"
-  log_done
+    puts " done"
+    log_done
+  end
 end
 
 def helm_repo_shutdown
@@ -420,48 +422,39 @@ def chart_in_app
 end
 
 def statepath
-  @statepath = File.join(@workdir, 'results.yaml') unless @statepath
-  @statepath
+  @statepath ||= File.join(@workdir, 'results.yaml')
 end
 
 def appdir
-  @appdir = File.join(@workdir, "charts") unless @appdir
-  @appdir
+  @appdir ||= File.join(@workdir, "charts")
 end
 
 def working_saved
-  @wsaved = File.join(archive_saved, 'index.yaml') unless @wsaved
-  @wsaved
+  @wsaved ||= File.join(archive_saved, 'index.yaml')
 end
 
 def archive_saved
-  @asaved = File.join(@workdir, 'ok') unless @asaved
-  @asaved
+  @asaved ||= File.join(@workdir, 'ok')
 end
 
 def archive_orig
-  @aunpatched = File.join(@workdir, 'archive-orig.tgz') unless @aunpatched
-  @aunpatched
+  @aunpatched ||= File.join(@workdir, 'archive-orig.tgz')
 end
 
 def archive_patched
-  @apatched = File.join(@workdir, 'archive-patched.tgz') unless @apatched
-  @apatched
+  @apatched ||= File.join(@workdir, 'archive-patched.tgz')
 end
 
 def manifest
-  @manifest = File.join(appdir, "manifest.yml") unless @manifest
-  @manifest
+  @manifest ||= File.join(appdir, "manifest.yml")
 end
 
 def chart_index
-  @chartindex = File.join(appdir, "index.yaml") unless @chartindex
-  @chartindex
+  @chartindex ||= File.join(appdir, "index.yaml")
 end
 
 def archive_app
-  @aapp = File.join(appdir, chart_in_app) unless @aapp
-  @aapp
+  @aapp ||= File.join(appdir, chart_in_app)
 end
 
 def domain
@@ -470,28 +463,23 @@ def domain
 end
 
 def tester
-  @brain = File.join(@scfdir, "make/tests") unless @brain
-  @brain
+  @brain ||= File.join(@scfdir, "make/tests")
 end
 
 def appsrc
-  @appsrc = File.join(@top, "src/scf-release/src/acceptance-tests-brain/test-resources/node-env") unless @appsrc
-  @appsrc
+  @appsrc ||= File.join(@top, "src/scf-release/src/acceptance-tests-brain/test-resources/node-env")
 end
 
 def helm_repo
-  @helmrepo = "http://#{helm_app}.#{domain}" unless @helmrepo
-  @helmrepo
+  @helmrepo ||= "http://#{helm_app}.#{domain}"
 end
 
 def target
-  @target = "https://api.#{domain}" unless @target
-  @target
+  @target ||= "https://api.#{domain}"
 end
 
 def chart_ref
-  @chartref = "#{helm_repo}/#{chart_in_app}" unless @chartref
-  @chartref
+  @chartref ||= "#{helm_repo}/#{chart_in_app}"
 end
 
 # ......................................................................
@@ -543,7 +531,7 @@ def _print_command(*args)
 end
 
 def separator(text)
-  sepline = "____________________________________________________________ #{text} ___"
+  sepline = '_' * 60 + " #{text} ___"
   log "\n#{sepline.magenta}\n"
   write text
   message = yield
@@ -552,26 +540,22 @@ def separator(text)
   write message
 end
 
-def log_start(engine,enginev,chartv)
+def log_start(engine, enginev, chartv)
   enginedir = File.join(@workdir, engine)
-  @log = File.join(enginedir, "#{enginev}-#{chartv}.log")
   FileUtils.mkdir_p(enginedir)
-  FileUtils.rm_f(@log)
-  FileUtils.touch(@log)
+  @log = File.open(File.join(enginedir, "#{enginev}-#{chartv}.log"),
+                   File::CREAT|File::TRUNC|File::APPEND)
 end
 
 def log(text)
-  # append to log file @log
-  # https://stackoverflow.com/questions/27956638/how-to-append-a-text-to-file-succinctly/27956730
-  #File.write(@log, text, File.size(@log), mode: 'a')
-  File.write(@log, text, mode: 'a')
+  @log.puts text
 end
 
 def log_done
   @log = nil
 end
 
-def write (text)
+def write(text)
   print text
   $stdout.flush
 end
