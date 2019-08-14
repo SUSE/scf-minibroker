@@ -12,7 +12,8 @@ end
 def log_start(engine, enginev, chartv)
   enginedir = File.join(@workdir, engine)
   FileUtils.mkdir_p(enginedir)
-  @log = File.open(File.join(enginedir, "#{enginev}-#{chartv}.log"),
+  @logfile = File.join(enginedir, "#{enginev}-#{chartv}.log")
+  @log = File.open(@logfile,
                    File::CREAT|File::TRUNC|File::WRONLY|File::APPEND)
   log "Tracking operation ..."
 end

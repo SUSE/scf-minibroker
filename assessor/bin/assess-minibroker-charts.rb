@@ -152,7 +152,7 @@ def assess_chart (chart, engine, enginev, chartv, chart_location)
       " helm repo #{"down".blue},"
     end
 
-    puts " done"
+    puts " done = #{@logfile.cyan}"
     log_done
   end
 end
