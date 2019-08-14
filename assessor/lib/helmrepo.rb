@@ -40,9 +40,7 @@ def helm_repo_setup(chart, engine, chart_location)
   run "cf create-space mb-charting"
   run "cf target    -o mb-charting"
 
-  FileUtils.cd(appdir) do
-    run "cf", "push", "-n", helm_app
-  end
+  run "cf", "push", helm_app, "-p", appdir, "-n", helm_app
 
   # Report location
   helm_repo
