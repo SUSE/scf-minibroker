@@ -71,7 +71,10 @@ def archive_app
 end
 
 def domain
-  @domain, _, _ = capture "kubectl get pods -o json --namespace \"#{@namespace}\" api-group-0 | jq -r '.spec.containers[0].env[] | select(.name == \"DOMAIN\").value'" unless @domain
+  unless @domain
+    pod, _, _ = capture "kubectl", "get", "pods", "-o", "yaml", "--namespace", @namespace, "api-group-0"
+    @domain = YAML.load(pod)['spec']['containers'][0]['env'].select { |ev| ev['name'] == "DOMAIN" }.first['value']
+  end
   @domain
 end
 
