@@ -1,6 +1,6 @@
 # Assessing the minibroker database charts.
 
-The main purpose of the tooling in this directory is to assess which
+The main purpose of the tooling in this repository is to assess which
 of the publicly available charts for the databases supported by
 minibroker will work with SCF.
 
