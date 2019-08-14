@@ -15,7 +15,7 @@ def eeol
 end
 
 # Move to beginning of line and erase
-def rewind
+def rewind_line
   print "\r"
   eeol
 end

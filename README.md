@@ -6,12 +6,9 @@ minibroker will work with SCF.
 
 ## How to use the tooling
 
-The main entry point / script is `../bin/assess-minibroker-charts.rb`.
+The main entry point / script is `assessor/bin/assess-minibroker-charts.rb`.
 
-Note how this script is not in this subdirectory of `tooling/`, but in
-the main tooling `bin/` directory.
-
-The script and its helpers require:
+The script requires:
 
   - A working `kubectl` command in the `PATH`, with its config
     pointing to
@@ -21,6 +18,14 @@ The script and its helpers require:
   - A working `patch` command in the `PATH`. For a vagrant box this
     means that is is necessary to run `sudo zypper install patch`
     before attempting an assessment.
+  - A working `ruby`, of course, and the gems
+      - fileutils
+      - net/http
+      - open3
+      - optparse
+      - uri
+      - yaml
+  - Furthermore `tar`, and `gzip`.      
 
 Run the the script using
 
@@ -37,6 +42,7 @@ the default configuration, i.e.
 |Admin password	|(Vagrant standard)	|-p, --password		|
 |Mode		|Full run		|-i, --incremental	|
 |Work directory	|(Git root)/`_work/mb-chart-assessment`	|-w, --work-dir		|
+|SCF source dir	|(No default, must be set)		|-s, --scf-dir		|
 
 The mode of `full run` means that all found charts are tested,
 regardless of any previous results. Such a run takes about 2 days at
@@ -67,12 +73,13 @@ at just shy of two days for a full assessment all engines.
 
 The entrypoint is
 
-  - ../bin/assess-minibroker-charts.rb
+  - `assessor/bin/assess-minibroker-charts.rb`
 
 Beyond the above we have a number of engine-dependent patch files in
 the
 
-  - `patches/`
+  - `assessor/patches/`
 
 directory which fix issues in the charts when used with minibroker.
-Without these patches no chart will work.
+Without these patches no chart will work due to file permissions
+issues with `hostpath` volumes used in the vagrant box.

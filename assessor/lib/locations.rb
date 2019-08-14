@@ -43,19 +43,19 @@ def appdir
 end
 
 def working_saved
-  @wsaved ||= File.join(archive_saved, 'index.yaml')
+  @working_saved ||= File.join(archive_saved, 'index.yaml')
 end
 
 def archive_saved
-  @asaved ||= File.join(@workdir, 'ok')
+  @archive_saved ||= File.join(@workdir, 'ok')
 end
 
 def archive_orig
-  @aunpatched ||= File.join(@workdir, 'archive-orig.tgz')
+  @archive_orig ||= File.join(@workdir, 'archive-orig.tgz')
 end
 
 def archive_patched
-  @apatched ||= File.join(@workdir, 'archive-patched.tgz')
+  @archive_patched ||= File.join(@workdir, 'archive-patched.tgz')
 end
 
 def manifest
@@ -63,11 +63,11 @@ def manifest
 end
 
 def chart_index
-  @chartindex ||= File.join(appdir, "index.yaml")
+  @chart_index ||= File.join(appdir, "index.yaml")
 end
 
 def archive_app
-  @aapp ||= File.join(appdir, chart_in_app)
+  @archive_app ||= File.join(appdir, chart_in_app)
 end
 
 def domain
@@ -79,7 +79,7 @@ def domain
 end
 
 def tester
-  @brain ||= File.join(@scfdir, "make/tests")
+  @tester ||= File.join(@scfdir, "make/tests")
 end
 
 def appsrc
@@ -87,7 +87,7 @@ def appsrc
 end
 
 def helm_repo
-  @helmrepo ||= "http://#{helm_app}.#{domain}"
+  @helm_repo ||= "http://#{helm_app}.#{domain}"
 end
 
 def target
@@ -95,5 +95,5 @@ def target
 end
 
 def chart_ref
-  @chartref ||= "#{helm_repo}/#{chart_in_app}"
+  @chart_ref ||= "#{helm_repo}/#{chart_in_app}"
 end

@@ -15,14 +15,13 @@ def state
     #
     # version is chart version  (`version`)
     # app     is engine version (`appVersion`)
-    @state.default_proc = proc { |h, k| h[k] = Hash.new }
+    @state.default_proc = proc { |h, k| h[k] = Hash.new { |hh, kk| hh[kk] = Hash.new } }
   end
   @state
 end
 
 def state_save(engine, enginev, chartv, success)
-  @state[engine] ||= {}
-  @state[engine][chartv] = {
+  state[engine][chartv] = {
     'app'   => enginev,
     'works' => success,
   }
@@ -44,7 +43,7 @@ def regenerate_working_index
     working[engine] = []
     master_index[engine].each do |chart|
       chartv = chart['version']
-      next unless @state && @state[engine] && @state[engine][chartv] && @state[engine][chartv]['works']
+      next unless state[engine][chartv] && state[engine][chartv]['works']
       new = chart.dup
       new['created'] = fixed_time
       new['urls'] = "#{mbbt_repository}/#{engine}-#{chartv}.tgz"

@@ -6,13 +6,13 @@ def helm_repo_shutdown
     run "cf", "delete-space", "-f", "mb-charting"
     run "cf", "delete-org",   "-f", "mb-charting"
   end
-  FileUtils.remove_dir(appdir, force = true)
+  FileUtils.remove_dir(appdir, force: true)
 end
 
-def helm_repo_setup(chart, engine, chartlocation)
+def helm_repo_setup(chart, engine, chart_location)
   # Assemble and run node-env app serving the helm repository.
   # I. Copy original app into fresh directory
-  FileUtils.remove_dir(appdir, force = true)
+  FileUtils.remove_dir(appdir, force: true)
   FileUtils.cp_r(appsrc, appdir)
 
   # II. Change app name to something more suitable
@@ -21,7 +21,7 @@ def helm_repo_setup(chart, engine, chartlocation)
   File.write(manifest, m.to_yaml)
 
   # III. Write remote helm chart to local file
-  get_engine_chart(chartlocation)
+  get_engine_chart(chart_location)
 
   # IV. Patch local chart archive. Stop on failure
   return "" unless sucessfully_patched_chart(engine)
@@ -39,7 +39,6 @@ def helm_repo_setup(chart, engine, chartlocation)
   run "cf target    -o mb-charting"
   run "cf create-space mb-charting"
   run "cf target    -o mb-charting"
-  run "cf enable-feature-flag diego_docker"
 
   FileUtils.cd(appdir) do
     run "cf", "push", "-n", helm_app
@@ -49,8 +48,8 @@ def helm_repo_setup(chart, engine, chartlocation)
   helm_repo
 end
 
-def get_engine_chart(chartlocation)
-    uri = URI.parse (chartlocation)
+def get_engine_chart(chart_location)
+    uri = URI.parse (chart_location)
     res = Net::HTTP.get_response uri
     File.write(archive_orig, res.body)
 end
@@ -61,7 +60,7 @@ def sucessfully_patched_chart(engine)
     # Patch required - setup, unpack, modify, repack, cleanup
     # setup
     tmp = File.join(@workdir, "tmp")
-    FileUtils.remove_dir(tmp, force = true)
+    FileUtils.remove_dir(tmp, force: true)
     FileUtils.mkdir_p(tmp)
 
     # unpack

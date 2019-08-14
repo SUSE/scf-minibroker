@@ -8,7 +8,7 @@
 # - Fixed location: `stable` helm repository
 # - Configurable:   work directory for state
 # - Configurable:   scf source directory
-# - Configurable:   SCF namespace
+# - Configurable:   scf namespace
 # - Configurable:   Cluster Admin Password
 # - Configurable:   Operation mode (full, incremental)
 
@@ -41,21 +41,21 @@ def main
 
   engines.each do |engine|
     master_index[engine].each do |chart|
-      enginev       = chart['appVersion']
-      chartv        = chart['version']
-      chartlocation = chart['urls'].first
+      enginev        = chart['appVersion']
+      chartv         = chart['version']
+      chart_location = chart['urls'].first
 
       # We are ignoring all the entries for which we do not have the
       # engine version. Because that is the plan id later, therefore
       # required.
       next unless enginev
-      next if skip_chart(engine, enginev, chartv)
+      next if skip_chart?(engine, enginev, chartv)
 
-      assess_chart(chart, engine, enginev, chartv, chartlocation)
+      assess_chart(chart, engine, enginev, chartv, chart_location)
     end
   end
 
-  rewind
+  rewind_line
   puts "#{"Skipped".cyan}:  #{@skipped}"  if @skipped
   puts "#{"Assessed".cyan}: #{@assessed}" if @assessed
 end
@@ -69,14 +69,14 @@ def master_index
 end
 
 def helm_index(location)
-    uri = URI.parse (location + "/index.yaml")
+    uri = URI.parse(location + "/index.yaml")
     res = Net::HTTP.get_response uri
 
     # Debugging, save index data.
     File.write(File.join(@workdir, 'index-location.txt'), uri)
     File.write(File.join(@workdir, 'index.yaml'), res.body)
 
-    YAML.load (res.body)
+    YAML.load(res.body)
 end
 
 def base_statistics
@@ -89,29 +89,29 @@ def base_statistics
     # required.
 
     count = master_index[engine].select {|c| c['appVersion']}.length
-    puts "#{"Extracting".cyan} engine #{engine.blue}: #{count.to_s.cyan}"
+    puts "#{"Extracting".cyan} engine #{engine.blue}: #{count.to_s.cyan} charts"
   end
 end
 
-def skip_chart(engine, enginev, chartv)
+def skip_chart?(engine, enginev, chartv)
   return false unless @incremental && state[engine][chartv]
   @skipped += 1
-  rewind
+  rewind_line
   write "Skipping #{engine} #{enginev} #{chartv}"
   # delay to actually see the output ?
   true
 end
 
-def assess_chart (chart, engine, enginev, chartv, chartlocation)
+def assess_chart (chart, engine, enginev, chartv, chart_location)
   log_start(engine, enginev, chartv)
 
-  rewind
+  rewind_line
   write "  - #{engine.blue} #{enginev.blue}, chart #{chartv.blue} ..."
   @success = false
 
   begin
     separator " helm repo setup ..." do
-      @the_repo = helm_repo_setup(chart, engine, chartlocation)
+      @the_repo = helm_repo_setup(chart, engine, chart_location)
 
       if @the_repo
         " helm repo #{"up".green},"
@@ -123,23 +123,25 @@ def assess_chart (chart, engine, enginev, chartv, chartlocation)
 
     return "" unless @the_repo
 
-    separator " testing ..." do
-      @success = do_test(@the_repo, engine)
-      state_save(engine, enginev, chartv, @success)
+    begin
+      separator " testing ..." do
+        @success = do_test(@the_repo, engine)
+        state_save(engine, enginev, chartv, @success)
 
-      if @success
-        " testing #{"OK".green},"
-      else
-        " testing #{"FAIL".red},"
+        if @success
+          " testing #{"OK".green},"
+        else
+          " testing #{"FAIL".red},"
+        end
+      end
+    ensure
+      # clear leftovers, service & broker parts, ignoring errors.
+      separator " post assessment, clearing service & broker state ..." do
+        test_clear(engine)
+        ""
       end
     end
-
-    # clear leftovers, service & broker parts, ignoring errors.
-    separator " post assessment, clearing service & broker state ..." do
-      test_clear(engine)
-      ""
-    end
-
+    
   ensure
     @assessed += 1
     archive_save(engine, chartv) if @success
