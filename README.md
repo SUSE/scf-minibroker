@@ -18,7 +18,7 @@ The script requires:
   - A working `patch` command in the `PATH`. For a vagrant box this
     means that is is necessary to run `sudo zypper install patch`
     before attempting an assessment.
-  - A working `ruby`
+  - A working `ruby`.
   - Furthermore `tar`, and `gzip`.      
 
 Run the the script using
@@ -35,6 +35,7 @@ the default configuration, i.e.
 |CF namespace	|`cf`			|-n, --namespace	|
 |Admin password	|(Vagrant standard)	|-p, --password		|
 |Mode		|Full run		|-i, --incremental	|
+|		|			|-c, --check		|
 |Work directory	|(Git root)/`_work/mb-chart-assessment`	|-w, --work-dir		|
 |SCF source dir	|(No default, must be set)		|-s, --scf-dir		|
 
@@ -43,8 +44,9 @@ regardless of any previous results. Such a run takes about 2 days at
 the moment.
 
 An incremental run should be much faster. It is activated with option
-`-i`. In this mode the script ignores all charts for which it has
-results, indicating that they have been processed already.
+`-i` or `--incremental`. In this mode the script ignores all charts
+for which it has results, indicating that they have been processed
+already.
 
 This enables easy resumption of operation if the script was aborted,
 be it a bug, or the user.
@@ -62,6 +64,12 @@ Note that the testing of a single chart can take up to 10 minutes,
 although the average looks to be about 4 to 5 minutes. With about 140
 charts to test per engine on average, and four engines we are looking
 at just shy of two days for a full assessment all engines.
+
+A variant of the incremental mode is `check` mode, activated with
+option `-c` or `--check`. In this mode the tool only determines if
+there are untested charts or not. The tools reports success if there
+are untested charts, and failure if not. This mode does not require an
+SCF cluster.
 
 ## Tool internals, for the maintainer.
 

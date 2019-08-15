@@ -5,6 +5,7 @@ def config
   @auth        = "changeme"
   @incremental = false
   @scfdir      = nil
+  @check       = false
 
   OptionParser.new do |opts|
     opts.banner = "Usage: assess-minibroker-charts [options]"
@@ -22,6 +23,11 @@ def config
     end
     opts.on("-i", "--incremental", "Activate incremental mode") do |v|
       @incremental = true
+      @check       = false
+    end
+    opts.on("-c", "--check", "Activate check mode, implied incremental") do |v|
+      @check       = true
+      @incremental = true
     end
   end.parse!
 
@@ -32,13 +38,16 @@ def config
   puts "  - Top:       #{@top.blue}"
   puts "  - Work dir:  #{@workdir.blue}"
   puts "  - SCF dir:   #{@scfdir.blue}"
-  puts "  - Domain:    #{domain.blue}"
+  puts "  - Domain:    #{domain.blue}" unless @check
+  puts "  - Domain:    #{"n/a, checking only".blue}" if @check
 
   FileUtils.mkdir_p(@workdir)
 end
 
 def mode
-  if @incremental
+  if @check
+    "check mode, keeping previous data, no cluster required"
+  elsif @incremental
     "incremental, keeping previous data"
   else
     "fresh, clearing previous data"
