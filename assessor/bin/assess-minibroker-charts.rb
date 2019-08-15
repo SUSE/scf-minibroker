@@ -10,7 +10,7 @@
 # - Configurable:   scf source directory
 # - Configurable:   scf namespace
 # - Configurable:   Cluster Admin Password
-# - Configurable:   Operation mode (full, incremental)
+# - Configurable:   Operation mode (full, incremental, check)
 
 require 'fileutils'
 require 'net/http'
@@ -50,6 +50,15 @@ def main
       next unless enginev
       next if skip_chart?(engine, enginev, chartv)
 
+      rewind_line
+      write "  - #{engine.blue} #{enginev.blue}, chart #{chartv.blue} ..."
+
+      # In check mode we can stop now, we found a chart to work on.
+      if @check
+        puts " go"
+        exit 0
+      end
+
       assess_chart(chart, engine, enginev, chartv, chart_location)
     end
   end
@@ -57,6 +66,9 @@ def main
   rewind_line
   puts "#{"Skipped".cyan}:  #{@skipped}"  if @skipped
   puts "#{"Assessed".cyan}: #{@assessed}" if @assessed
+
+  # In check mode coming here means that no chart to test was found.
+  exit 1 if @check
 end
 
 def master_index
@@ -104,9 +116,6 @@ end
 
 def assess_chart (chart, engine, enginev, chartv, chart_location)
   log_start(engine, enginev, chartv)
-
-  rewind_line
-  write "  - #{engine.blue} #{enginev.blue}, chart #{chartv.blue} ..."
   @success = false
 
   begin
@@ -141,7 +150,7 @@ def assess_chart (chart, engine, enginev, chartv, chart_location)
         ""
       end
     end
-    
+
   ensure
     @assessed += 1
     archive_save(engine, chartv) if @success
