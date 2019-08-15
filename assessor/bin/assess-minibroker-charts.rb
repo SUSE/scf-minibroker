@@ -93,7 +93,8 @@ def base_statistics
 end
 
 def skip_chart?(engine, enginev, chartv)
-  return false unless @incremental && state[engine][chartv]
+  return false unless @incremental
+  return false if state[engine][chartv].empty?
   @skipped += 1
   rewind_line
   write "Skipping #{engine} #{enginev} #{chartv}"
