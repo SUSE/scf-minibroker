@@ -37,7 +37,6 @@ def main
 
   @assessed = 0
   @skipped = 0
-  state
 
   engines.each do |engine|
     master_index[engine].each do |chart|

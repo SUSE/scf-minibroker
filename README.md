@@ -18,13 +18,7 @@ The script requires:
   - A working `patch` command in the `PATH`. For a vagrant box this
     means that is is necessary to run `sudo zypper install patch`
     before attempting an assessment.
-  - A working `ruby`, of course, and the gems
-      - fileutils
-      - net/http
-      - open3
-      - optparse
-      - uri
-      - yaml
+  - A working `ruby`
   - Furthermore `tar`, and `gzip`.      
 
 Run the the script using
