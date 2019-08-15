@@ -15,7 +15,12 @@ def state
     #
     # version is chart version  (`version`)
     # app     is engine version (`appVersion`)
+
+    # Setup auto-creation of missing top and 2nd level entries
     @state.default_proc = proc { |h, k| h[k] = Hash.new { |hh, kk| hh[kk] = Hash.new } }
+
+    # Setup auto-creation of missing 2nd level entries for existing top level entries
+    @state.each { |k, v| @state[k].default_proc = proc { |hh, kk| hh[kk] = Hash.new } }
   end
   @state
 end
