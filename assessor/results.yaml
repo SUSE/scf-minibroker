@@ -1,0 +1,5 @@
+---
+redis:
+  3.7.0:
+    works: true
+    app: 4.0.10
